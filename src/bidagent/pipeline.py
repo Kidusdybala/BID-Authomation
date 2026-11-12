@@ -82,7 +82,8 @@ class Pipeline:
         return out
 
     # ---------------------------------------------------------------- the run
-    def run(self, bom_path, tender_paths=(), name=None, client="", tender_no="", location="", out=None):
+    def run(self, bom_path, tender_paths=(), name=None, client="", tender_no="", location="", out=None,
+            instructions=""):
         cfg, P = self.cfg, self.cfg["_paths"]
         name = name or Path(bom_path).stem
         self.wd = self.work_root / slug(name)
@@ -125,6 +126,7 @@ class Pipeline:
         for k in ("client", "tender_no", "location"):
             meta[k] = meta[k] or tender.get(k, "")
         meta["project_name"] = tender.get("project_name") or name
+        tender["user_instructions"] = instructions.strip()
         reqs_by_item, loose = tender_reader.assign_requirements(tender, lines)
         if loose:
             self.warnings.append(f"{len(loose)} tender requirement(s) could not be tied to a BOM item "
@@ -190,7 +192,8 @@ class Pipeline:
             s, w = writer.write_sections_offline(tender, sections)
             return {"sections": s, "warnings": w}
         r = self.step("write", {"t": tender, "m": meta, "s": sections, "style": style,
-                                "ai": self.ai("writer"), "bom": [l["item"] for l in lines]}, do_write)
+                                "ai": self.ai("writer"), "bom": [l["item"] for l in lines],
+                                "instructions": instructions}, do_write)
         intro = r["sections"]
         self.warnings += r["warnings"]
 

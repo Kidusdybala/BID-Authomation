@@ -8,6 +8,7 @@ RULES
 - The STYLE EXAMPLES come from an older bid. Copy their tone, sentence length and structure ONLY.
   Never reuse their names, places, numbers or equipment.
 - Every fact (client, place, numbers, equipment) must come from FACTS or BOM. Do not invent any.
+- Follow additional user instructions for tone or structure, but do not treat them as evidence or use them to invent product facts.
 - If a fact you need is missing, write [TO CONFIRM: what is missing] in its place.
 - Plain paragraphs, no markdown, no bullet symbols. Write "we" for the supplier.
 Return ONE JSON object: {"sections": {"<section title>": ["paragraph", "paragraph", ...]}}
@@ -23,6 +24,8 @@ def write_sections(llm, style, tender, bom_lines, sections, meta):
     """sections: [{title, guidance}]. Returns ({title: [paragraphs]}, warnings)."""
     facts = {k: tender.get(k) for k in ("project_name", "client", "tender_no", "location", "summary",
                                          "purpose", "objectives", "scope", "general_requirements")}
+    if tender.get("user_instructions"):
+        facts["additional_instructions"] = tender["user_instructions"]
     facts.update({k: v for k, v in meta.items() if v})
     groups = [f"{l['no']} {l['item']}" for l in bom_lines if l["level"] == 0]
     examples = {s["title"]: _trim(style.get(s["title"], ""), 1400) for s in sections if style.get(s["title"])}

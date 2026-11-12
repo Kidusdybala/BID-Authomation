@@ -13,6 +13,7 @@ dependencies = [
   "pdfplumber>=0.10",
   "Pillow>=10",
   "PyYAML>=6",
+  "streamlit>=1.55,<2",
 ]
 
 [project.optional-dependencies]
