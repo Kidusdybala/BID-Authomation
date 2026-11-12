@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "bidagent"
 version = "0.2.0"
 description = "Evidence-aware technical bid and proposal generator"
-readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "python-docx>=1.1",
