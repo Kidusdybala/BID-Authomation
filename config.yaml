@@ -1,0 +1,85 @@
+# BidAgent settings. Keys go in .env (copy .env.example), never in this file.
+#
+# Model names change often. If a provider says "model not found", look up the current
+# free model name on that provider's site and edit it here.
+
+paths:
+  library: library        # product library (created by `ingest`)
+  datasheets: datasheets  # drop your datasheet PDFs here (sub-folders are fine)
+  work: work              # step results, LLM cache, usage log (safe to delete)
+  output: output          # finished bids and review reports
+  facts: knowledge/facts.yaml
+
+template:
+  name: template.docx           # stored in library/templates/ by `ingest`
+  keep_sections: ["Company Background"]
+  # Cover-page text from your old bid that should change. Easiest is to put these tokens in
+  # your template instead: {{PROJECT_NAME}} {{CLIENT}} {{TENDER_NO}} {{DATE}} {{LOCATION}}
+  replace: {}
+  #  "Old Project Name Ltd": "{{PROJECT_NAME}}"
+
+titles:
+  intro: Project Introduction
+  technical: Technical Proposal
+  compliance: Compliance Statement
+  bom: Bill of Materials
+
+# Extra bid-specific sections the writer agent should draft (uncomment / add your own).
+extra_sections: []
+#  - title: Data and Network Connection
+#    guidance: How the offered devices connect (LAN/WAN, PoE, protocols). Use only BOM and tender facts.
+#  - title: VC system Integration
+#    guidance: How the video-conferencing equipment integrates. Use only BOM and tender facts.
+
+compliance:
+  enabled: true
+  datasheet_second_pass: true   # for requirements not found in the library, look in the datasheet
+
+datasheets:
+  max_pages_per_model: 6
+  max_chars: 12000
+
+web_research:
+  enabled: true                # refresh BOM product research from Google Search for each new bid
+
+tender:
+  chunk_chars: 14000
+  max_chunks: 32                # read larger tender text files; raise further if the review report warns
+
+draft_products: include         # include | skip
+
+providers:
+  gemini:
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai
+    api_key_env: GEMINI_API_KEY
+  groq:
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY
+  openrouter:
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+  ollama:                        # local, free, no key
+    base_url: http://localhost:11434/v1
+    api_key_env: null
+    timeout: 600
+
+# Each agent: a list tried in order. If the first is rate-limited, the next one is used.
+agents:
+  default:
+    - {provider: gemini, model: gemini-2.5-flash}
+    - {provider: groq, model: llama-3.3-70b-versatile}
+  tender:       # reads long documents: pick a big-context model first
+    - {provider: gemini, model: gemini-2.5-flash}
+    - {provider: openrouter, model: "deepseek/deepseek-chat-v3-0324:free"}
+  datasheet:
+    - {provider: gemini, model: gemini-2.5-flash}
+    - {provider: groq, model: llama-3.3-70b-versatile}
+  writer:       # writing quality matters most here
+    - {provider: gemini, model: gemini-2.5-flash}
+    - {provider: groq, model: llama-3.3-70b-versatile}
+  compliance:
+    - {provider: groq, model: llama-3.3-70b-versatile}
+    - {provider: gemini, model: gemini-2.5-flash}
+  reviewer:
+    - {provider: gemini, model: gemini-2.5-flash}
+    - {provider: groq, model: llama-3.3-70b-versatile}

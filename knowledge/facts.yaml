@@ -1,0 +1,10 @@
+# Your own known facts about products. The reviewer checks every BOM line and requirement
+# against these, with no AI and no tokens. Add a rule whenever you catch a mistake by hand.
+#
+#   match:       any of these (case/space/punctuation-insensitive) appears in the BOM line
+#   contradicts: ...together with any of these = flag it
+#   note:        what to tell you
+facts:
+  - match: ["EOS R10"]
+    contradicts: ["full-frame", "full frame", "fullframe"]
+    note: "Canon EOS R10 is an APS-C (24.2 MP) camera, not full-frame. Check the requirement or pick another body."
