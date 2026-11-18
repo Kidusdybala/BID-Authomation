@@ -20,7 +20,9 @@ def env(tmp_path_factory):
     srv, port = mock_llm.start()
     base = yaml.safe_load((Path(__file__).parent.parent / "config.yaml").read_text())
     base["providers"] = {"mock": {"base_url": f"http://127.0.0.1:{port}/v1", "api_key_env": None}}
-    base["agents"] = {"default": [{"provider": "mock", "model": "m"}]}
+    mock_chain = [{"provider": "mock", "model": "m"}]
+    base["agents"] = {name: mock_chain for name in
+                      ("default", "tender", "datasheet", "writer", "compliance", "reviewer")}
     base["template"]["keep_sections"] = ["Company Background"]
     (root / "config.yaml").write_text(yaml.safe_dump(base))
     cfg = load_config(root / "config.yaml")
