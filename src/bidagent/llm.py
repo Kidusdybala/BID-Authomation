@@ -99,6 +99,9 @@ class LLM:
             return d["text"]
 
         errors = []
+        retry_config = self.cfg.get("retry_attempts", {})
+        retry_attempts = max(1, int(retry_config.get(agent, retry_config.get("default", 3))))
+        agent_timeout = self.cfg.get("agent_timeouts", {}).get(agent)
         for step in chain:
             prov = self.cfg.get("providers", {}).get(step["provider"])
             if not prov:
@@ -110,9 +113,12 @@ class LLM:
                 errors.append(f"{step['provider']}: {env} not set")
                 continue
             use_json = json_mode
-            for attempt in range(3):
+            request_provider = dict(prov)
+            if agent_timeout:
+                request_provider["timeout"] = agent_timeout
+            for attempt in range(retry_attempts):
                 try:
-                    text, usage = self._call(prov, api_key, step["model"], system, user,
+                    text, usage = self._call(request_provider, api_key, step["model"], system, user,
                                              use_json, temperature, max_tokens)
                     if cache and (not json_mode or _json_ok(text)):
                         cf.write_text(json.dumps({"provider": step["provider"],
@@ -129,13 +135,15 @@ class LLM:
                         continue
                     if e.code in (429, 500, 502, 503, 504):
                         errors.append(f'{step["provider"]}/{step["model"]}: HTTP {e.code}')
-                        time.sleep(min(3 * 2 ** attempt, 30))
+                        if attempt + 1 < retry_attempts:
+                            time.sleep(min(3 * 2 ** attempt, 30))
                         continue
                     errors.append(f'{step["provider"]}/{step["model"]}: HTTP {e.code} {body}')
                     break
                 except (urllib.error.URLError, TimeoutError, OSError) as e:
                     errors.append(f'{step["provider"]}/{step["model"]}: {e}')
-                    time.sleep(2)
+                    if attempt + 1 < retry_attempts:
+                        time.sleep(2)
         raise LLMUnavailable("all models failed: " + " | ".join(errors[-4:]))
 
     def complete_json(self, agent, system, user, **kw):

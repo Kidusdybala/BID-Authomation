@@ -52,34 +52,59 @@ providers:
   gemini:
     base_url: https://generativelanguage.googleapis.com/v1beta/openai
     api_key_env: GEMINI_API_KEY
+    timeout: 60
   groq:
     base_url: https://api.groq.com/openai/v1
     api_key_env: GROQ_API_KEY
+    timeout: 60
   openrouter:
     base_url: https://openrouter.ai/api/v1
     api_key_env: OPENROUTER_API_KEY
+    timeout: 45
   ollama:                        # local, free, no key
     base_url: http://localhost:11434/v1
     api_key_env: null
     timeout: 600
 
-# Each agent: a list tried in order. If the first is rate-limited, the next one is used.
+# Each agent: a list tried in order. Keep free providers as fallbacks, not parallel calls.
+retry_attempts:
+  default: 1                    # move to the next model/provider instead of waiting through repeated retries
+  chat: 1                       # move to the next provider immediately on a free-tier limit
+agent_timeouts:
+  chat: 25
+
 agents:
+  chat:                         # fast route for normal conversation
+    - {provider: groq, model: openai/gpt-oss-20b}
+    - {provider: gemini, model: gemini-3.8-flash}
+    - {provider: openrouter, model: openrouter/free}
   default:
-    - {provider: gemini, model: gemini-2.5-flash}
-    - {provider: groq, model: llama-3.3-70b-versatile}
+    - {provider: gemini, model: gemini-3.5-flash}
+    - {provider: gemini, model: gemini-3.8-flash}
+    - {provider: groq, model: openai/gpt-oss-20b}
+    - {provider: openrouter, model: openrouter/free}
   tender:       # reads long documents: pick a big-context model first
-    - {provider: gemini, model: gemini-2.5-flash}
-    - {provider: openrouter, model: "deepseek/deepseek-chat-v3-0324:free"}
+    - {provider: gemini, model: gemini-3.5-flash}
+    - {provider: gemini, model: gemini-3.8-flash}
+    - {provider: groq, model: openai/gpt-oss-20b}
+    - {provider: openrouter, model: openrouter/free}
   datasheet:
-    - {provider: gemini, model: gemini-2.5-flash}
-    - {provider: groq, model: llama-3.3-70b-versatile}
+    - {provider: gemini, model: gemini-3.5-flash}
+    - {provider: gemini, model: gemini-3.8-flash}
+    - {provider: groq, model: openai/gpt-oss-20b}
+    - {provider: openrouter, model: openrouter/free}
   writer:       # writing quality matters most here
-    - {provider: gemini, model: gemini-2.5-flash}
-    - {provider: groq, model: llama-3.3-70b-versatile}
+    - {provider: gemini, model: gemini-3.5-flash}
+    - {provider: gemini, model: gemini-3.8-flash}
+    - {provider: groq, model: openai/gpt-oss-20b}
+    - {provider: openrouter, model: openrouter/free}
   compliance:
-    - {provider: groq, model: llama-3.3-70b-versatile}
-    - {provider: gemini, model: gemini-2.5-flash}
+    - {provider: gemini, model: gemini-3.5-flash}
+    - {provider: gemini, model: gemini-3.8-flash}
+    - {provider: groq, model: openai/gpt-oss-20b}
+    - {provider: openrouter, model: openrouter/free}
   reviewer:
-    - {provider: gemini, model: gemini-2.5-flash}
-    - {provider: groq, model: llama-3.3-70b-versatile}
+    - {provider: gemini, model: gemini-3.5-flash}
+    - {provider: gemini, model: gemini-3.8-flash}
+    - {provider: groq, model: openai/gpt-oss-20b}
+    - {provider: openrouter, model: openrouter/free}
