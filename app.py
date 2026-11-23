@@ -35,6 +35,7 @@ MODEL_AUTO = "Auto (recommended)"
 MODEL_OPTIONS = (
     MODEL_AUTO,
     "Groq · GPT-OSS 20B (fast)",
+    "AgentRoute · Groq (GPT-OSS 20B)",
     "Gemini · 3.8 Flash",
     "OpenRouter · Free",
 )
@@ -359,13 +360,36 @@ Generated Proposal Details:
         f"{message['role'].title()}: {message['content']}"
         for message in conversation_messages[1:]
     )
+    if model_choice == "AgentRoute · Groq (GPT-OSS 20B)":
+        try:
+            groq_api_key = os.environ.get("GROQ_API_KEY")
+            if groq_api_key:
+                from agentroute import Agent
+
+                agent = Agent(
+                    name="bid-chat",
+                    model="openai/gpt-oss-20b",
+                    api_key=groq_api_key,
+                    base_url=CONFIG["providers"]["groq"]["base_url"],
+                    instructions=system_prompt,
+                    max_turns=1,
+                    retries=0,
+                )
+                result = agent.run(conversation_text)
+                agent_reply = getattr(result, "output", None) or str(result)
+                if agent_reply.strip():
+                    return agent_reply.strip()
+        except Exception:
+            # Keep chat available via the existing Groq/Gemini/OpenRouter fallback chain.
+            pass
+
     try:
         return LLM(config_for_model_choice(model_choice), PROJECT_ROOT / "work").complete(
             agent="chat",
             system=system_prompt,
             user=conversation_text,
             temperature=0.7,
-            max_tokens=1500,
+            max_tokens=700,
         )
     except Exception:
         pass

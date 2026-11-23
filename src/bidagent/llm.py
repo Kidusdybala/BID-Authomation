@@ -102,7 +102,13 @@ class LLM:
         retry_config = self.cfg.get("retry_attempts", {})
         retry_attempts = max(1, int(retry_config.get(agent, retry_config.get("default", 3))))
         agent_timeout = self.cfg.get("agent_timeouts", {}).get(agent)
+        total_timeout = self.cfg.get("agent_total_timeouts", {}).get(agent)
+        deadline = time.monotonic() + float(total_timeout) if total_timeout else None
         for step in chain:
+            remaining = deadline - time.monotonic() if deadline is not None else None
+            if remaining is not None and remaining <= 0.5:
+                errors.append(f"{agent}: total timeout reached before trying remaining providers")
+                break
             prov = self.cfg.get("providers", {}).get(step["provider"])
             if not prov:
                 errors.append(f'{step["provider"]}: provider not defined')
@@ -114,8 +120,10 @@ class LLM:
                 continue
             use_json = json_mode
             request_provider = dict(prov)
-            if agent_timeout:
-                request_provider["timeout"] = agent_timeout
+            request_timeout = agent_timeout or prov.get("timeout", 240)
+            if remaining is not None:
+                request_timeout = min(float(request_timeout), remaining)
+            request_provider["timeout"] = max(0.5, float(request_timeout))
             for attempt in range(retry_attempts):
                 try:
                     text, usage = self._call(request_provider, api_key, step["model"], system, user,

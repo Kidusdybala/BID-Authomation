@@ -71,7 +71,9 @@ retry_attempts:
   default: 1                    # move to the next model/provider instead of waiting through repeated retries
   chat: 1                       # move to the next provider immediately on a free-tier limit
 agent_timeouts:
-  chat: 25
+  chat: 9
+agent_total_timeouts:
+  chat: 18
 
 agents:
   chat:                         # fast route for normal conversation
